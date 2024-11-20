@@ -1,3 +1,4 @@
 com\github\thomasdarimont\keycloak\faceauth\FaceAuthenticatorFormFactory.class
 META-INF\services\org.keycloak.authentication.AuthenticatorFactory
 com\github\thomasdarimont\keycloak\faceauth\FaceAuthenticatorForm.class
+com\github\thomasdarimont\keycloak\faceauth\FaceAuthenticatorForm$BiometricVerificationResult.class
