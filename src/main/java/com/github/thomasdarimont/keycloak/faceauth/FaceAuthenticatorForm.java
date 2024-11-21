@@ -23,6 +23,7 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -97,8 +98,7 @@ public class FaceAuthenticatorForm implements Authenticator {
             System.out.println(path);
             File tempImageFile = convertImageFileToTemp(path);
 
-            BiometricVerificationResult result = sendFingerprintSegmentationRequest(tempImageFile,"left_slab");
-            System.out.println(result);
+
             // Parse JSON response if needed
             ObjectMapper mapper = new ObjectMapper();
             Map responseMap = mapper.readValue(response, Map.class);
@@ -111,8 +111,13 @@ public class FaceAuthenticatorForm implements Authenticator {
             if (responseMap.containsKey("imageBase64")) {
                 attributes.put("imageData", responseMap.get("imageBase64"));
             }
-            System.out.println(responseMap.get("imageBase64"));
 
+            String base64 = responseMap.get("imageBase64").toString();
+
+            File tempFile = decodeBase64ToImage(base64);
+
+            BiometricVerificationResult result = sendFingerprintSegmentationRequest(tempFile,"left_slab");
+            System.out.println(result);
 
             // Send to FTL template
             Response challengeResponse = context.form()
@@ -208,6 +213,7 @@ public class FaceAuthenticatorForm implements Authenticator {
         }
     }
 
+
     private void writeMultipartData(OutputStream outputStream, File fingerprintImage, String imageType, String boundary)
             throws IOException {
         try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(outputStream, "UTF-8"), true)) {
@@ -276,6 +282,30 @@ public class FaceAuthenticatorForm implements Authenticator {
             System.out.println("Error reading the image file: " + e.getMessage());
         }
         return null;
+    }
+
+    private File decodeBase64ToImage(String base64Image) throws IOException {
+        try {
+            // Remove data URL prefix if present
+            String imageData = base64Image.contains(",") ? base64Image.split(",")[1] : base64Image;
+
+            // Add padding if necessary
+            while (imageData.length() % 4 != 0) {
+                imageData += "=";
+            }
+
+            // Decode and save to temporary file
+            byte[] decodedBytes = Base64.getDecoder().decode(imageData);
+//            File tempFile = File.createTempFile("biometric_", ".png");
+            File tempFile=  new File("finger.png");
+            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                fos.write(decodedBytes);
+            }
+            return tempFile;
+        } catch (IllegalArgumentException e) {
+            System.out.println("Invalid base64 format");
+            return null;
+        }
     }
 
 
